@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Thomas Tonsmeire | Tools</title>
+  <meta name="description" content="Supply chain and logistics tools built by Thomas Tonsmeire.">
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      color-scheme: light;
+      --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6f6d68;
+      --border: rgba(11, 11, 11, 0.12); --link: #1c5cab;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        color-scheme: dark;
+        --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #9a988f;
+        --border: rgba(255, 255, 255, 0.12); --link: #86b6ef;
+      }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--page); color: var(--ink); line-height: 1.5; }
+    main { max-width: 860px; margin: 0 auto; padding: 3rem 1rem 4rem; }
+    h1 { font-size: 1.9rem; margin: 0 0 0.25rem; }
+    .lede { color: var(--ink-2); margin: 0 0 2rem; }
+    h2 { font-size: 1.1rem; margin: 0 0 0.35rem; }
+    a { color: var(--link); }
+    .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem; }
+    .tool { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1rem 1.1rem; display: flex; flex-direction: column; }
+    .tool p { color: var(--ink-2); margin: 0 0 1rem; flex: 1; }
+    .tool .soon { color: var(--muted); font-size: 0.9rem; }
+    .btn { align-self: flex-start; padding: 0.45rem 0.9rem; border-radius: 6px; background: var(--ink); color: var(--surface); text-decoration: none; font-size: 0.9rem; }
+    .btn:focus-visible, a:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; }
+    footer { margin-top: 3rem; font-size: 0.85rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Thomas Tonsmeire</h1>
+    <p class="lede">Supply chain and logistics tools I've built. Each one runs in your browser; nothing to install.</p>
+
+    <div class="tools">
+      <article class="tool">
+        <h2>Simple-Dashboard</h2>
+        <p>Upload raw supply chain data, map its columns, and get dashboards by theme: carrier scorecards today, with HR and demand/fulfillment themes planned. Your data stays on your computer.</p>
+        <a class="btn" href="/simple-dashboard/">Open Simple-Dashboard</a>
+      </article>
+      <article class="tool">
+        <h2>Chainview</h2>
+        <p>Coming soon.</p>
+        <span class="soon">Not yet published</span>
+      </article>
+    </div>
+
+    <footer>Source code on <a href="https://github.com/ttonsmeire-wq">GitHub</a>.</footer>
+  </main>
+</body>
+</html>
