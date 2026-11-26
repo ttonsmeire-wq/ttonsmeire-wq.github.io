@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
-<title>BUY THE RUMOR — Bizness Games (Beta v0.5)</title>
+<title>BUY THE RUMOR — Bizness Games (Beta v0.8)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600&family=Silkscreen&family=VT323&family=IBM+Plex+Mono:wght@400;600&family=Old+Standard+TT:wght@400;700&display=swap" rel="stylesheet">
 <style>
@@ -228,8 +228,10 @@ body.m.portrait #rotate{display:flex;position:fixed;inset:0;z-index:99999;backgr
 .mstats .box{font-size:12px;min-height:44px}
 .mstats .box button{min-height:30px;width:100%}
 .qv{font-size:20px;color:#fff;font-weight:600}
+.crt input.mqty{flex:1;min-width:0;width:auto;min-height:44px;font-size:20px!important;font-weight:600;text-align:center;border:1px solid #7dff8f;background:#000;color:#fff}
+.mcost{color:#ffd27a;font-weight:600;font-size:13px}
 .crt button.rbtn{min-height:44px;font-size:12px!important;padding:0 2px!important}
-.m #toasts{bottom:10px;right:max(10px,env(safe-area-inset-right));top:auto;left:auto;align-items:flex-end}
+.m #toasts{top:6px;bottom:auto;left:50%;right:auto;transform:translateX(-50%);align-items:center}
 .m .pgrid{grid-template-columns:1fr!important;gap:6px!important}
 .m .clist{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .m .clist>div:last-child:not(.ccard){grid-column:1/-1}
@@ -265,6 +267,15 @@ body.m.portrait #rotate{display:flex;position:fixed;inset:0;z-index:99999;backgr
  .m .cardbox h1{font-size:15px}.m .cardbox{padding:8px 12px}.m .hb .sect{padding:1px 0!important}.m .hb h1{margin-bottom:2px}}
 .mport{flex:1;display:grid;grid-template-columns:1fr 1.2fr;gap:12px;min-height:0;overflow:auto}
 .m #pchart{height:110px}
+
+body.away #monitor,body.away #deskHead,body.away #deskMast,body.away #doorPlate,body.away #chadPlate,body.away #padBadge,body.away #ring,body.away #hotspots,body.away #arrow,body.away #endDay,body.away #objective,body.away #heatBox{display:none!important}
+#loc{position:absolute;left:10px;top:48px;z-index:4;background:rgba(20,14,10,.85);color:#f3ead7;font-family:Silkscreen,monospace;font-size:11px;padding:4px 10px;border:2px solid var(--mustard)}
+.m #loc{position:fixed;top:54px;left:max(6px,env(safe-area-inset-left))}
+
+.bgopt.locked{opacity:.55;background:#efe6d2}
+.m .endkv{grid-template-columns:1fr auto 1fr auto;gap:1px 12px}.m .endface{width:60px!important;height:60px!important}
+.eragrid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.m .ycard .bgopt{min-height:44px}.m .ycard .bgopt div{font-size:11px}.m .ycard h1{font-size:15px}
 </style>
 </head>
 <body>
@@ -287,6 +298,7 @@ body.m.portrait #rotate{display:flex;position:fixed;inset:0;z-index:99999;backgr
   <div id="win" class="hidden"></div>
   <div id="dlg" class="hidden"><canvas id="dlgFace" width="16" height="16"></canvas><div style="flex:1;position:relative"><div class="dn" id="dlgName"></div><div class="dt" id="dlgText"></div><div class="dc" id="dlgCh"></div></div><div class="dm" id="dlgMore">▼</div></div>
   <div id="card" class="hidden"></div>
+  <div id="loc" class="hidden"></div>
   <div id="bigText"></div>
   <div id="fade"></div>
   <div id="toasts"></div>
@@ -296,12 +308,12 @@ body.m.portrait #rotate{display:flex;position:fixed;inset:0;z-index:99999;backgr
 <script>
 'use strict';
 /* =====================================================================
-   BUY THE RUMOR — Bizness Games — Beta v0.5
+   BUY THE RUMOR — Bizness Games — Beta v0.8
    Single-file HTML5 game. No real-money purchases of any kind.
    Engine (prices/events/tips) carried over from v0.1 balance pass.
    ===================================================================== */
-const VERSION='Beta v0.5', FEE=4.95, DAYS=60, PRE=120;
-const SAVE_KEY='btr_save_v05', HOF_KEY='btr_hof_v05';
+const VERSION='Beta v0.8', FEE=4.95, DAYS=60, PRE=120;
+const SAVE_KEY='btr_save_v08', HOF_KEY='btr_hof_v08';
 
 /* ---------------- DATA ---------------- */
 const SECTORS={TECH:'Tech',MEDIA:'Media',CONS:'Consumer',ENER:'Energy',FIN:'Finance',HLTH:'Health',TRVL:'Travel',WILD:'Wildcards'};
@@ -351,6 +363,7 @@ const BACKGROUNDS={
  legacy:{n:'Ivy League Legacy',d:'Start with $35,000 of family money. The Boss expects more from you: your Q1 goal is to grow 5%.',cash:35000},
  grinder:{n:'State School Grinder',d:'Start with $25,000. You run on caffeine: 4 coffees a day instead of 3.',cash:25000},
  crypto:{n:'Reformed Crypto Bro',d:'Start with $25,000. You speak fluent hype: Brayden\'s tips are more accurate, and Chirper shows you more real leaks.',cash:25000},
+ mallwart:{n:'Mall-Wart Alum',d:'Start with $20,000. Ten years in retail: Mom\'s tips are more accurate, and research on Consumer stocks costs no coffee.',cash:20000,lock:'mallwart'},
 };
 
 /* ---------------- TEXT ---------------- */
@@ -418,7 +431,7 @@ function newGame(o){
   G={v:VERSION,seed:seedStr||String(seed>>>0),rng:seed,day:1,start:BACKGROUNDS[bg].cash,cash:BACKGROUNDS[bg].cash,pos:{},hist:{},idx:[],nw:[BACKGROUNDS[bg].cash],chad:[1],
      events:[],signals:[],sigN:0,apMax:bg==='grinder'?4:3,ap:0,called:{},chirped:false,chirps:[],log:[],heat:0,insider:[],flagged:[],research:{},trades:[],sel:'APLZ',
      stats:{trades:0,fees:0,borrow:0,realized:0,best:null,worst:null,insiderTrades:0,fines:0},news:[],rumors:[],over:false,q:{},
-     player:{name:o.name||'Rookie',f:o.face,bg},title:'Junior Analyst',strikes:0,reviews:[],
+     player:{name:o.name||'Rookie',f:o.face,bg},era:ERAS[o.era]&&(!ERAS[o.era].need||unlocked()[ERAS[o.era].need])?o.era:'standard',hard:!!o.hard&&unlocked().hard,title:'Junior Analyst',strikes:0,reviews:[],
      unlock:{phone:false,notebook:false,short:false,mom:false,brayden:false,ana:false,research:false,chirp:false,garage:false,sal:false},
      tut:'intro',ring:null,lastCall:{},flags:{},bonusAP:0,pendingReview:null,pendingInv:false,pendingMargin:false,lastIdxMove:0};
   G.ap=G.apMax;
@@ -426,7 +439,7 @@ function newGame(o){
   const secR={};for(const s in SECTORS){secR[s]=[];for(let i=0;i<PRE;i++)secR[s].push(randn()*0.005);}
   const rets=Array(PRE).fill(0);
   CO.forEach(c=>{let a=[1];const drift=randn()*0.0012;
-    for(let i=0;i<PRE;i++){a.push(a[i]*Math.exp(c.beta*mkt[i]+secR[c.s][i]+randn()*c.vol*0.9+drift));}
+    for(let i=0;i<PRE;i++){a.push(a[i]*Math.exp(c.beta*mkt[i]+secR[c.s][i]+randn()*volOf(c)*0.9+drift));}
     const k=c.p0/a[PRE];a=a.map(x=>+(x*k).toFixed(2));for(let i=0;i<PRE;i++)rets[i]+=a[i+1]/a[i]-1;G.hist[c.t]=a;
     let q=clamp(randn()*0.55,-1,1);G.q[c.t]=[];for(let k2=0;k2<4;k2++){G.q[c.t].push(+q.toFixed(3));q=clamp(0.6*q+0.45*randn()*0.6,-1,1);}});
   G.idx=[5000];for(let i=0;i<PRE;i++)G.idx.push(G.idx[i]*(1+rets[i]/CO.length));
@@ -436,6 +449,7 @@ function newGame(o){
 }
 function mkEvent(o){o.id='e'+G.events.length;G.events.push(o);return o;}
 function addSig(ev,src,a,b,pc,chance){if(rand()>chance)return;const day=Math.max(1,ev.day-rint(a,b));if(day>=ev.day)return;
+  if(src==='mom'&&G.player.bg==='mallwart')pc=Math.min(.95,pc+.1);
   if(src==='brayden'&&G.player.bg==='crypto')pc=Math.min(.9,pc+.2);
   const ok=rand()<pc;G.signals.push({id:'s'+(G.sigN++),ev:ev.id,src,day,dir:ok?ev.sign:-ev.sign,used:false});}
 function pushSig(ev,src,day,pc){day=Math.max(1,Math.min(day,ev.day-1));const ok=rand()<pc;G.signals.push({id:'s'+(G.sigN++),ev:ev.id,src,day,dir:ok?ev.sign:-ev.sign,used:false});}
@@ -443,7 +457,7 @@ function genEvents(){
   for(let d=3;d<=DAYS-1;d++){
     if(rand()>0.42)continue;
     const pool=[];CO.forEach(c=>{pool.push(c);if(c.s==='WILD')pool.push(c);});
-    const c=pick(pool),q=G.q[c.t][qtr(d)],sign=rand()<0.5+0.15*q?1:-1;
+    const c=pick(pool),q=G.q[c.t][qtr(d)];let pp=0.5+0.15*q;if(G.era==='dotbomb'&&(c.s==='TECH'||c.s==='MEDIA'))pp+=d<32?0.2:-0.25;if(G.era==='winter'&&c.s==='WILD')pp-=0.25;const sign=rand()<pp?1:-1;
     let mag=(0.06+rand()*0.12)*Math.sqrt(c.vol/0.016),head,pre=null,preDay=null,sched=false;
     if(c.meme&&rand()<0.6){mag*=1.5;head=(sign>0?pick(MEME_POS):pick(MEME_NEG))(c);}
     else if(rand()<0.32&&d>=6){const tpl=c.t==='FIZR'?SCHED_FDA:pick(SCHED);head=(sign>0?tpl.pos:tpl.neg)(c);pre=tpl.pre(c);preDay=Math.max(1,d-rint(3,6));sched=true;mag*=1.15;}
@@ -459,15 +473,24 @@ function genEvents(){
     const head=sign>0?`${c.n} beats earnings estimates; raises guidance`:`${c.n} misses earnings; CEO blames "macro headwinds"`;
     const ev=mkEvent({day:d,scope:'stock',target:c.t,sign,head,pre:null,preDay:null,sched:false,earn:true,imp:{[c.t]:sign*Math.min(mag,.35)}});
     addSig(ev,'ana',2,6,.72,.85);addSig(ev,'garage',1,3,.92,.25);addSig(ev,'chirp',1,4,.5,.25);if(c.s==='WILD')addSig(ev,'brayden',1,3,.55,.5);});
-  for(let i=0;i<7;i++){const tpl=pick(SECTOR_EV),d=rint(4,DAYS-1),sign=rand()<.5?1:-1,mag=tpl.mag[0]+rand()*(tpl.mag[1]-tpl.mag[0]);
+  for(let i=0;i<7;i++){const tpl=pick(SECTOR_EV),d=rint(4,DAYS-1),sign=(G.era==='winter'&&tpl.label==='Wildcards')?-1:rand()<.5?1:-1,mag=tpl.mag[0]+rand()*(tpl.mag[1]-tpl.mag[0]);
     const imp={};CO.forEach(c=>{if(tpl.imp[c.s])imp[c.t]=sign*mag*tpl.imp[c.s];});
     const ev=mkEvent({day:d,scope:'sector',label:tpl.label,sign,head:sign>0?tpl.pos:tpl.neg,sched:false,earn:false,imp});
     addSig(ev,'sal',1,4,.75,.8);addSig(ev,'rumor',1,3,.6,.4);addSig(ev,'chirp',1,4,.55,.4);}
   const nM=4+(rand()<.5?1:0);
-  for(let i=0;i<nM;i++){const tpl=pick(MACRO_EV),d=rint(4,DAYS-1),sign=rand()<.55?1:-1,mag=.02+rand()*.025;const imp={};CO.forEach(c=>imp[c.t]=sign*mag*c.beta);
+  for(let i=0;i<nM;i++){const tpl=pick(MACRO_EV),d=rint(4,DAYS-1),sign=rand()<(G.era==='party'?.8:.55)?1:-1,mag=.02+rand()*.025;const imp={};CO.forEach(c=>imp[c.t]=sign*mag*c.beta);
     const ev=mkEvent({day:d,scope:'macro',sign,head:sign>0?tpl.pos:tpl.neg,sched:false,earn:false,imp});addSig(ev,'sal',1,4,.75,.85);addSig(ev,'rumor',1,3,.6,.4);}
   if(rand()<0.35){const d=rint(20,DAYS-3),imp={};CO.forEach(c=>imp[c.t]=-0.075*c.beta);
     const ev=mkEvent({day:d,scope:'macro',sign:-1,head:'FLASH CRASH: algorithm mistakes a cat video for a recession signal',sched:false,earn:false,imp});addSig(ev,'sal',1,3,.8,.9);addSig(ev,'chirp',1,2,.6,.6);}
+  // era set pieces
+  if(G.era==='dotbomb'){const d1=rint(14,20),d2=rint(38,46);
+    const i1={},i2={};CO.forEach(c=>{if(c.s==='TECH'){i1[c.t]=0.10;i2[c.t]=-0.22;}if(c.s==='MEDIA'){i1[c.t]=0.06;i2[c.t]=-0.15;}});
+    const e1=mkEvent({day:d1,scope:'sector',label:'Tech',sign:1,head:'Dot-bomb mania: every company adds ".com" to its name; tech soars',sched:false,earn:false,imp:i1});addSig(e1,'sal',1,3,.8,.9);addSig(e1,'rumor',1,2,.65,.6);
+    const e2=mkEvent({day:d2,scope:'sector',label:'Tech',sign:-1,head:'The bubble pops: tech and media stocks crater',sched:false,earn:false,imp:i2});addSig(e2,'sal',2,4,.8,.95);addSig(e2,'chirp',1,3,.6,.7);addSig(e2,'rumor',1,2,.65,.6);}
+  if(G.era==='winter'){const d1=rint(5,12),i1={};CO.forEach(c=>{if(c.s==='WILD')i1[c.t]=-0.18;});
+    const e1=mkEvent({day:d1,scope:'sector',label:'Wildcards',sign:-1,head:'Crypto winter deepens; BitCorn miners switch to mining actual corn',sched:false,earn:false,imp:i1});addSig(e1,'sal',1,3,.8,.9);addSig(e1,'chirp',1,3,.6,.6);}
+  if(G.era==='party'){const d1=rint(8,15),i1={};CO.forEach(c=>i1[c.t]=0.035*c.beta);
+    const e1=mkEvent({day:d1,scope:'macro',sign:1,head:'Fed cuts rates again; brokers seen high-fiving strangers',sched:false,earn:false,imp:i1});addSig(e1,'sal',1,3,.8,.9);}
   // opening storylines tuned to the unlock order (rumor Day 1, Sal Day 2)
   const c1=pick(CO.filter(c=>!c.meme&&c.vol>=.014)),s1=rand()<.5?1:-1;
   const o1=mkEvent({day:3,scope:'stock',target:c1.t,sign:s1,head:(s1>0?pick(STOCK_POS):pick(STOCK_NEG))(c1),pre:null,preDay:null,sched:false,earn:false,imp:{[c1.t]:s1*0.12*Math.sqrt(c1.vol/0.016)}});
@@ -479,7 +502,7 @@ function genEvents(){
 }
 function buildNews(){
   const d=G.day;G.news=[];
-  if(d===1)G.news.push({txt:'Markets open a new fiscal year; traders cautiously optimistic, heavily caffeinated',tag:'MARKETS',major:true});
+  if(d===1)G.news.push({txt:{standard:'Markets open a new fiscal year; traders cautiously optimistic, heavily caffeinated',dotbomb:'New year, new economy: analysts say profits are "so last century"',winter:'Crypto winter: BitCorn holders now heating homes with old mining rigs',party:'Fed promises "vibes-based" rate policy; markets open the year in a great mood'}[G.era||'standard'],tag:'MARKETS',major:true});
   G.events.filter(e=>e.day===d).forEach(e=>G.news.push({txt:e.head,tag:e.scope==='stock'?e.target:e.scope==='sector'?e.label.toUpperCase():'MARKETS',major:true,t:e.scope==='stock'?e.target:null,earn:e.earn}));
   G.news.sort((a,b)=>(a.earn?1:0)-(b.earn?1:0));
   G.events.filter(e=>e.sched&&e.preDay===d).forEach(e=>G.news.push({txt:`${e.pre} on Day ${e.day}`,tag:'CALENDAR',t:e.target}));
@@ -502,8 +525,9 @@ function tipText(s){
    case 'chirp':return up?`${pick(CHIRP_HANDLES)}: my sources say ${subj} is about to rip 📈`:`${pick(CHIRP_HANDLES)}: ${subj} looks shaky. Something's coming 🐻`;
   }return '...';
 }
-function addLog(src,text,sig,t){G.log.unshift({day:G.day,src,text,sig,t});}
-function verdictOf(l){if(!l.sig)return null;const s=G.signals.find(x=>x.id===l.sig);if(!s)return null;const ev=EV(s.ev);
+function addLog(src,text,sig,t,hunch){const e={day:G.day,src,text,sig,t};if(hunch)e.hunch=hunch;G.log.unshift(e);}
+function verdictOf(l){if(l.hunch){const h=l.hunch;if(G.day<=h.until&&!(G.over&&G.day>=h.until))return{txt:`PENDING · DAY ${h.until}`,c:'pend'};const hs=G.hist[h.t],p0=hs[PRE+h.day0-1],p1=hs[Math.min(hs.length-1,PRE+h.until)];return (p1-p0)*h.dir>0?{txt:'✔ RIGHT',c:'ok'}:{txt:'✘ WRONG',c:'no'};}
+  if(!l.sig)return null;const s=G.signals.find(x=>x.id===l.sig);if(!s)return null;const ev=EV(s.ev);
   if(ev.day>G.day)return{txt:`PENDING · DAY ${ev.day}`,c:'pend'};return s.dir===ev.sign?{txt:'✔ RIGHT',c:'ok'}:{txt:'✘ WRONG',c:'no'};}
 
 /* trading */
@@ -537,14 +561,14 @@ function trade(t,side,qty){
 
 /* end of day simulation */
 function simulateClose(){
-  const d=G.day;const m=0.0001+randn()*0.007;const sr={};for(const s in SECTORS)sr[s]=randn()*0.005;
+  const d=G.day;const m=(G.era==='party'?0.0006:0.0001)+randn()*0.007;const sr={};for(const s in SECTORS)sr[s]=randn()*0.005;
   const ep={};CO.forEach(c=>ep[c.t]=0);
   G.events.forEach(e=>{const w=e.day===d?0.4:e.day===d+1?0.6:0;if(!w)return;for(const t in e.imp)ep[t]+=w*e.imp[t];});
   let sum=0;
-  CO.forEach(c=>{const p=price(c.t),q=G.q[c.t][qtr(d)];let r=c.beta*m+sr[c.s]+randn()*c.vol*0.85+q*0.0007+ep[c.t];r=clamp(r,-0.7,1.2);
+  CO.forEach(c=>{const p=price(c.t),q=G.q[c.t][qtr(d)];let r=c.beta*m+sr[c.s]+randn()*volOf(c)*0.85+q*0.0007+ep[c.t];r=clamp(r,-0.7,1.2);
     const np=Math.max(0.5,+(p*Math.exp(r)).toFixed(2));G.hist[c.t].push(np);sum+=np/p-1;});
   const ir=sum/CO.length;G.idx.push(G.idx[G.idx.length-1]*(1+ir));G.lastIdxMove=ir;
-  G.chad.push(G.chad[G.chad.length-1]*(1+ir*1.1+0.0009+randn()*0.011));
+  G.chad.push(G.chad[G.chad.length-1]*(1+ir*1.1+(G.hard?0.0016:0.0009)+randn()*0.011));
   let fee=0;for(const t in G.pos){const q=G.pos[t].qty;if(q<0)fee+=-q*price(t)*(COMAP[t].meme?0.002:0.0005);}G.cash-=fee;G.stats.borrow+=fee;
   G.divAcc=G.divAcc||{};for(const t in G.pos){const c=COMAP[t];if(c.dy)G.divAcc[t]=(G.divAcc[t]||0)+G.pos[t].qty*price(t)*c.dy/DAYS;}
   G.lastDiv=0;if(d%15===0){const tot=divAccTotal();G.cash+=tot;G.stats.divs=(G.stats.divs||0)+tot;G.lastDiv=tot;G.divAcc={};if(Math.abs(tot)>0.005)addLog('sys',`Quarterly dividends ${tot>=0?'paid to you':'charged on your shorts'}: ${fm(tot)}.`,null,null);}
@@ -558,6 +582,10 @@ function marginCheck(){const sv=shortValue();if(sv<=0||netWorth()>=0.30*sv)retur
 
 /* quarterly goals */
 function goal(Q){
+  if(G.hard){if(Q===0)return{txt:'Grow your account at least '+(G.player.bg==='legacy'?8:5)+'%',sh:'Grow '+(G.player.bg==='legacy'?8:5)+'%+ (Hard)',ok:()=>myRet()>=(G.player.bg==='legacy'?.08:.05)};
+   if(Q===1)return{txt:'Beat the market by 2 points',sh:'Market +2 pts (Hard)',ok:()=>myRet()>=indexRet()+.02};
+   if(Q===2)return{txt:'Beat Chad by 3 points',sh:'Chad +3 pts (Hard)',ok:()=>myRet()>=chadRet()+.03};
+   return{txt:'Final review: beat the market by 5 points',sh:'Market +5 pts (Hard)',ok:()=>myRet()>indexRet()+.05};}
   if(Q===0)return G.player.bg==='legacy'?{txt:'Grow your account at least 5%',sh:'Grow 5% or more',ok:()=>myRet()>=0.05}:{txt:'Don\'t lose money this quarter',sh:'Don\'t lose money',ok:()=>myRet()>=0};
   if(Q===1)return{txt:'Beat the S&P-ish 500 (year to date)',sh:'Beat the market',ok:()=>myRet()>=indexRet()};
   if(Q===2)return{txt:'Be ahead of Chad Sterling III',sh:'Beat Chad',ok:()=>myRet()>=chadRet()};
@@ -615,7 +643,7 @@ function paintFaces(root){root.querySelectorAll('canvas[data-face]').forEach(cv=
 
 /* ---------------- SCENE ---------------- */
 const SC=$('scene').getContext('2d');
-const U={win:null,ctab:'market',range:90,qty:10,tod:0,todTarget:0,shake:0,nbPage:0,nbFilter:'all',bossIn:false,frame:0,dlg:null,creator:null,clouds:[]};
+const U={scene:'desk',win:null,ctab:'market',range:90,qty:10,tod:0,todTarget:0,shake:0,nbPage:0,nbFilter:'all',bossIn:false,frame:0,dlg:null,creator:null,clouds:[]};
 const CITY=(()=>{const b=[];let x=10;while(x<120){const w=6+Math.floor(Math.random()*10),h=14+Math.floor(Math.random()*30);const lights=[];for(let yy=0;yy<h-4;yy+=4)for(let xx=1;xx<w-2;xx+=3)if(Math.random()<.45)lights.push([xx,yy]);
   b.push({x,w,h,c:['#5c6a85','#4d5a75','#6b7894','#56637e'][Math.floor(Math.random()*4)],lights});x+=w+1;}return b;})();
 for(let i=0;i<3;i++)U.clouds.push({x:Math.random()*110,y:14+Math.random()*16,w:10+Math.random()*12});
@@ -624,6 +652,7 @@ const SKY=[[0,'#86bce8','#d6ecf5'],[.7,'#6aa6dc','#ead8b0'],[1,'#3e3f7c','#f39a5
 function skyAt(t){for(let i=0;i<SKY.length-1;i++){const[a,at,ab]=SKY[i],[b,bt,bb]=SKY[i+1];if(t<=b){const k=(t-a)/(b-a);return[lerpC(at,bt,clamp(k,0,1)),lerpC(ab,bb,clamp(k,0,1))];}}return[SKY[3][1],SKY[3][2]];}
 function R(x,y,w,h,c){SC.fillStyle=c;SC.fillRect(x,y,w,h);}
 function drawScene(){
+  if(U.scene!=='desk'){drawAway();return;}
   const f=U.frame,t=U.tod,night=clamp((t-.95)/.4,0,1);
   // wall
   R(0,0,320,104,lerpC('#cdb592','#6a5a4a',night));R(0,0,320,4,lerpC('#9c7b55','#4a3a2a',night));
@@ -676,6 +705,67 @@ function drawScene(){
   // lamp light at night
   if(night>0){SC.fillStyle=`rgba(10,10,30,${night*.35})`;SC.fillRect(0,0,320,180);SC.fillStyle=`rgba(255,220,140,${night*.12})`;SC.beginPath();SC.ellipse(160,150,150,40,0,0,7);SC.fill();}
 }
+
+/* ---------------- AWAY SCENES ---------------- */
+function paintGridS(ctx,g,ox,oy,s){for(let y=0;y<16;y++)for(let x=0;x<16;x++)if(g[y][x]){ctx.fillStyle=g[y][x];ctx.fillRect(ox+x*s,oy+y*s,s,s);}}
+const LOC={garage:'PARKING GARAGE · LEVEL B2',office:'M. HAMMERSTEIN · HEAD OF TRADING',interro:'TRADE OVERSIGHT BUREAU · ROOM 3'};
+function goScene(sc,cb){U.busy=true;fade(true);setTimeout(()=>{U.scene=sc;document.body.classList.toggle('away',sc!=='desk');const l=$('loc');l.textContent=LOC[sc]||'';l.classList.toggle('hidden',sc==='desk');fade(false);setTimeout(()=>{U.busy=false;cb&&cb();},380);},450);}
+function sceneSay(sc,lines,done){goScene(sc,()=>say(lines,()=>{if(G.over){if(done)done();return;}goScene('desk',()=>{refresh();if(done)done();});}));}
+function drawAway(){const sc=U.scene;if(sc==='garage')drawGarage();else if(sc==='office')drawOffice();else if(sc==='interro')drawInterro();}
+function drawGarage(){
+  const f=U.frame,on=!((f%97)<3||(f%61)===0||(f%61)===2);
+  R(0,0,320,180,'#18191c');R(0,0,320,28,'#232529');for(let x=0;x<320;x+=40)R(x,0,7,28,'#1c1e21');
+  R(0,28,320,74,'#33363b');for(let y=36;y<100;y+=12)R(0,y,320,1,'#2c2f33');
+  R(0,98,320,8,'#26282c');for(let x=0;x<320;x+=16)R(x,99,8,5,'#b8921f');
+  R(0,106,320,74,'#26282b');[96,176,256].forEach(x=>{R(x,112,3,68,'#bdbdb2');});
+  SC.fillStyle='#1d1e21';SC.beginPath();SC.ellipse(132,150,22,5,0,0,7);SC.fill();SC.beginPath();SC.ellipse(222,166,14,3,0,0,7);SC.fill();
+  // cars
+  R(14,104,72,26,'#4a1f24');R(24,92,48,14,'#4a1f24');R(28,95,18,9,'#121418');R(50,95,18,9,'#121418');R(18,128,14,10,'#0b0b0c');R(66,128,14,10,'#0b0b0c');R(14,112,6,4,'#8a2a2a');
+  R(232,106,76,26,'#2f4a5e');R(244,94,50,14,'#2f4a5e');R(248,97,18,9,'#121418');R(270,97,18,9,'#121418');R(238,130,14,10,'#0b0b0c');R(288,130,14,10,'#0b0b0c');
+  // pillars
+  [[106],[196]].forEach(([x])=>{R(x,28,22,152,'#43464b');R(x,28,3,152,'#50535a');R(x+3,54,16,16,'#b8921f');});
+  // lamp + cone
+  R(150,26,24,4,'#77797d');R(156,30,12,2,on?'#fff3c0':'#4a4a40');
+  if(on){SC.fillStyle='rgba(255,236,170,.13)';SC.beginPath();SC.moveTo(156,32);SC.lineTo(168,32);SC.lineTo(205,170);SC.lineTo(119,170);SC.closePath();SC.fill();}
+  // the guy
+  paintGridS(SC,faceGrid(CAST.garage.f),146,58,2);R(142,88,40,56,'#7a6545');R(160,88,4,56,'#5e4e34');R(142,112,40,3,'#4a3d2c');R(150,144,9,22,'#1f1c18');R(166,144,9,22,'#1f1c18');R(136,94,8,34,'#7a6545');R(180,94,8,34,'#7a6545');
+  if(!on){SC.fillStyle='rgba(0,0,0,.45)';SC.fillRect(0,0,320,180);}
+  SC.fillStyle='rgba(0,0,0,.25)';SC.fillRect(0,0,320,10);SC.fillRect(0,170,320,10);
+}
+function drawOffice(){
+  const night=clamp((U.tod-.95)/.4,0,1);
+  R(0,0,320,180,'#5e3f2b');for(let x=0;x<320;x+=20){R(x,0,1,120,'#4f3524');R(x+10,0,1,120,'#6b4a33');}R(0,0,320,4,'#3f2a1c');
+  const[st,sb]=skyAt(U.tod);const gr=SC.createLinearGradient(0,14,0,90);gr.addColorStop(0,st);gr.addColorStop(1,sb);SC.fillStyle=gr;SC.fillRect(206,14,104,76);
+  CITY.forEach(b=>{const x=206+(b.x-10)*0.95;if(x>306)return;R(x,90-b.h*1.2,b.w,b.h*1.2,lerpC(b.c,'#1a1f33',night));});
+  R(204,12,108,3,'#e6dcc4');R(204,88,108,4,'#e6dcc4');R(204,12,3,80,'#e6dcc4');R(309,12,3,80,'#e6dcc4');R(256,14,3,76,'#e6dcc4');
+  // bookshelf
+  R(10,16,62,104,'#3f2a1c');for(let sh=0;sh<4;sh++){R(12,40+sh*24,58,3,'#2e1f14');for(let k=0;k<9;k++){R(14+k*6,22+sh*24,5,18,['#8c2f39','#2f5d9e','#d9a441','#2f7d4a','#ece2c8','#4a2f63'][(k+sh)%6]);}}
+  // mounted hammer + plaque
+  R(96,20,64,24,'#2e1f14');R(98,22,60,20,'#7a5434');R(106,30,40,4,'#c9a24a');R(140,24,12,14,'#a8a8b0');R(140,24,12,3,'#cfcfd6');
+  R(170,22,24,28,'#d9a441');R(173,25,18,22,'#f3ead7');R(177,30,10,2,'#8c2f39');R(177,35,10,2,'#8c2f39');R(177,40,10,2,'#8c2f39');
+  // the hammer herself
+  paintGridS(SC,faceGrid(CAST.boss.f),136,58,3);R(126,104,68,20,'#4a2f63');R(150,104,20,6,'#fffbe8');
+  // desk
+  R(30,116,260,64,'#5a2e1a');R(26,110,268,8,'#7a3e22');R(26,110,268,2,'#94502c');for(let y=126;y<180;y+=10)R(30,y,260,1,'#4d2716');
+  R(212,96,6,16,'#2f2f33');R(204,92,22,6,'#d9a441');R(52,100,16,12,'#f3ead7');R(54,102,12,3,'#8c2f39');R(84,104,40,8,'#ece2c8');R(86,100,36,4,'#d8ccb0');
+  R(132,110,56,6,'#2a1d14');
+  if(night>0){SC.fillStyle=`rgba(10,10,30,${night*.3})`;SC.fillRect(0,0,320,180);}
+}
+function drawInterro(){
+  const f=U.frame,sw=Math.sin(f/18)*3;
+  R(0,0,320,180,'#5b6164');for(let y=0;y<120;y+=10){for(let x=(y/10)%2?0:12;x<320;x+=24)R(x,y,1,10,'#50565a');R(0,y,320,1,'#50565a');}
+  R(10,22,104,66,'#15191c');R(10,22,104,3,'#2c3236');SC.fillStyle='rgba(255,255,255,.06)';SC.beginPath();SC.moveTo(30,24);SC.lineTo(48,24);SC.lineTo(24,86);SC.lineTo(12,86);SC.closePath();SC.fill();
+  R(262,24,40,96,'#3e4448');R(266,28,32,40,'#4a5156');R(294,74,3,3,'#c9a24a');
+  R(0,120,320,60,'#3a3f42');
+  // lamp
+  SC.strokeStyle='#222';SC.lineWidth=1;SC.beginPath();SC.moveTo(160,0);SC.lineTo(160+sw,24);SC.stroke();R(150+sw,24,20,6,'#2b2f32');
+  SC.fillStyle='rgba(255,244,200,.12)';SC.beginPath();SC.moveTo(152+sw,30);SC.lineTo(168+sw,30);SC.lineTo(230,150);SC.lineTo(90,150);SC.closePath();SC.fill();
+  // ledger
+  paintGridS(SC,faceGrid(CAST.ledger.f),136,54,3);R(126,100,68,24,'#1d2733');R(156,100,8,18,'#555');R(152,100,4,6,'#fff');R(164,100,4,6,'#fff');
+  // table
+  R(60,120,200,8,'#9aa0a4');R(60,128,200,3,'#7c8286');R(70,131,6,49,'#6b7175');R(244,131,6,49,'#6b7175');
+  R(186,112,34,8,'#d9b36a');R(188,110,30,3,'#c9a35a');R(98,110,10,10,'#ece2c8');R(108,113,3,4,'#ece2c8');
+}
 function loop(){U.frame++;$('doorPlate').style.visibility=U.bossIn?'hidden':'visible';U.tod+=(U.todTarget-U.tod)*0.06;
   drawScene();
   const st=$('stage');if(U.shake>0){U.shake--;st.style.marginLeft=(Math.random()*8-4)+'px';st.style.marginTop=(Math.random()*6-3)+'px';}else{st.style.marginLeft='0';st.style.marginTop='0';}
@@ -698,7 +788,7 @@ function renderHotspots(){
     return `<div class="hs ${lk?'lock':''} ${U.armed===h.id?'armed':''} ${h.y<40?'lblb':''}" data-act="hs" data-v="${h.id}" style="left:${h.x*3}px;top:${h.y*3}px;width:${h.w*3}px;height:${h.h*3}px"><span class="lbl">${lk?'🔒 '+h.lockTxt:h.label}</span></div>`;}).join('');
 }
 function hsClick(id){
-  if(U.dlg)return;
+  if(U.dlg||U.busy||U.closing)return;
   const h=HS.find(x=>x.id===id);
   if(id==='phone'&&G.ring){answerRing();return;}
   if(h.need&&!G.unlock[h.need]){toast(h.lockTxt||'Locked.');return;}
@@ -795,7 +885,7 @@ function compHtml(){
       <div style="display:flex;gap:4px;align-items:center;font-size:12px;white-space:nowrap">${[30,90,'ALL'].map(x=>`<button class="${U.range===x?'on':''}" data-act="range" data-v="${x}">${x==='ALL'?'ALL':x+' DAYS'}</button>`).join('')}<span class="d" style="margin-left:6px;font-size:12px">${rangeCaption()}</span></div>
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin:4px 0">
        <div class="box"><span>RISK</span>${risk}</div><div class="box"><span>DIVIDEND</span>${c.dy?(c.dy*100).toFixed(1)+'% / yr':'None'}</div><div class="box"><span>EARNINGS</span>${nextE?'Day '+nextE.day:'—'}</div>
-       <div class="box"><span>EVENT</span>${sched?'Day '+sched.day:'—'}</div><div class="box"><span>RESEARCH</span>${G.unlock.research?(rq?`<span class="${rs.b==='STRONG'?'up':rs.b==='WEAK'?'dn':'y'}">${rs.b}</span>`:`<button data-act="research" style="font-size:12px;padding:0 4px" ${G.ap<=0?'disabled':''}>☕ ORDER</button>`):'<span class="d">locked</span>'}</div></div>
+       <div class="box"><span>EVENT</span>${sched?'Day '+sched.day:'—'}</div><div class="box"><span>RESEARCH</span>${G.unlock.research?(rq?`<span class="${rs.b==='STRONG'?'up':rs.b==='WEAK'?'dn':'y'}">${rs.b}</span>`:`<button data-act="research" style="font-size:12px;padding:0 4px" ${G.ap<=0&&!freeResearch(t)?'disabled':''}>${freeResearch(t)?'FREE':'☕ ORDER'}</button>`):'<span class="d">locked</span>'}</div></div>
       <div style="font-size:13px;margin-top:2px">${posTxt}</div>
       <div style="display:flex;gap:5px;align-items:center;margin-top:4px">SHARES <input id="qty" type="number" min="1" value="${U.qty}" data-in="qty">
        <button data-act="qty" data-v="1">1</button><button data-act="qty" data-v="10">10</button><button data-act="qty" data-v="100">100</button><button data-act="qty" data-v="max">MAX</button>
@@ -832,7 +922,7 @@ function compHtmlM(){
     const nextE=G.events.find(e=>e.earn&&e.target===t&&e.day>=G.day);
     const rs=G.research[t],rq=rs&&rs.q===qtr(G.day);const risk=c.vol<.012?'Low':c.vol<.018?'Medium':c.vol<.03?'High':'Extreme';
     let posTxt='<span class="d">You don\'t own any.</span>';
-    if(ps){const pl=ps.qty>0?(p-ps.avg)*ps.qty:(ps.avg-p)*(-ps.qty);posTxt=`${ps.qty>0?'<span class="up">OWN</span>':'<span class="dn">SHORT</span>'} ${Math.abs(ps.qty)} @ ${fm(ps.avg)}<br><span class="${pl>=0?'up':'dn'}">${pl>=0?'profit':'loss'} ${fm(pl)}</span>`;}
+    if(ps){const pl=ps.qty>0?(p-ps.avg)*ps.qty:(ps.avg-p)*(-ps.qty);posTxt=`${ps.qty>0?'<span class="up">OWN</span>':'<span class="dn">SHORT</span>'} ${Math.abs(ps.qty)} @ ${fm(ps.avg)} · <span class="${pl>=0?'up':'dn'}">${pl>=0?'profit':'loss'} ${fm(pl)}</span>`;}
     const notes=G.log.filter(l=>l.t===t).length;
     body=`<div class="mstock"><div class="ml">
       <div style="display:flex;gap:8px;align-items:baseline;white-space:nowrap;overflow:hidden"><span class="y vt" style="font-size:24px">${c.n}</span><b style="font-size:16px">${fm(p)}</b><span class="${ch>=0?'up':'dn'}">${fp(ch,2)}</span></div>
@@ -840,14 +930,17 @@ function compHtmlM(){
       <canvas id="chart"></canvas>
       <div class="mrow">${[30,90,'ALL'].map(x=>`<button class="${U.range===x?'on':''}" data-act="range" data-v="${x}">${x==='ALL'?'ALL':x+'D'}</button>`).join('')}<span class="d" style="font-size:10px;flex:2;line-height:1.2">${rangeCaption()}</span></div>
       <div class="mstats"><div class="box"><span>RISK</span>${risk}</div><div class="box"><span>DIVIDEND</span>${c.dy?(c.dy*100).toFixed(1)+'%/yr':'None'}</div><div class="box"><span>EARNINGS</span>${nextE?'Day '+nextE.day:'—'}</div>
-       ${G.unlock.research&&!rq?`<button class="rbtn" data-act="research" ${G.ap<=0?'disabled':''}>☕ RESEARCH</button>`:`<div class="box"><span>RESEARCH</span>${G.unlock.research?`<span class="${rs.b==='STRONG'?'up':rs.b==='WEAK'?'dn':'y'}">${rs.b}</span>`:'<span class="d" style="font-size:12px">locked</span>'}</div>`}</div>
+       ${G.unlock.research&&!rq?`<button class="rbtn" data-act="research" ${G.ap<=0&&!freeResearch(t)?'disabled':''}>${freeResearch(t)?'RESEARCH (free)':'☕ RESEARCH'}</button>`:`<div class="box"><span>RESEARCH</span>${G.unlock.research?`<span class="${rs.b==='STRONG'?'up':rs.b==='WEAK'?'dn':'y'}">${rs.b}</span>`:'<span class="d" style="font-size:12px">locked</span>'}</div>`}</div>
     </div><div class="mr">
-      <div style="font-size:13px;line-height:1.3">${posTxt}</div>
-      <div class="mrow" style="flex-wrap:nowrap"><span style="flex:3;white-space:nowrap"><span class="qv">${U.qty}</span> <span class="d">sh</span> <span class="d" id="est" style="font-size:11px"></span></span><button data-act="qclr" style="flex:1">CLR</button>${ps?`<button data-act="qty" data-v="all" style="flex:1">ALL</button>`:''}</div>
-      <div class="mrow" style="flex-wrap:nowrap"><button data-act="qadj" data-v="-10">−10</button><button data-act="qadj" data-v="1">+1</button><button data-act="qadj" data-v="10">+10</button><button data-act="qadj" data-v="100">+100</button><button data-act="qty" data-v="max">MAX</button></div>
+      <div style="font-size:12px;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${posTxt}</div>
+      <div class="mrow" style="flex-wrap:nowrap"><input id="qty" class="mqty" type="number" inputmode="numeric" pattern="[0-9]*" min="0" value="${U.qty||''}" placeholder="0" data-in="qty" aria-label="Number of shares"><span class="d" style="flex:1.4">shares<br><span style="font-size:10px">tap to type</span></span></div>
+      <b id="est" class="mcost" style="white-space:nowrap">${costTxt()}</b>
+      <div id="cashleft" class="${G.cash-U.qty*p-FEE>=0?'d':'dn'}" style="font-size:11px;margin-top:-4px;white-space:nowrap">${cashLeftTxt()}</div>
+      <div class="mrow" style="flex-wrap:nowrap"><button data-act="qadj" data-v="-10">−10</button><button data-act="qadj" data-v="-1">−1</button><button data-act="qadj" data-v="1">+1</button><button data-act="qadj" data-v="10">+10</button><button data-act="qadj" data-v="100">+100</button></div>
+      <div class="mrow" style="flex-wrap:nowrap"><button data-act="qpct" data-v="25">25%</button><button data-act="qpct" data-v="50">50%</button><button data-act="qty" data-v="max">MAX</button>${ps?`<button data-act="qty" data-v="all">ALL ${Math.abs(ps.qty)}</button>`:''}</div>
       <div class="mrow" style="flex-wrap:nowrap"><button data-act="trade" data-v="buy" ${ps&&ps.qty<0?'disabled':''}>▲ BUY</button><button data-act="trade" data-v="sell" ${!ps||ps.qty<0?'disabled':''}>▼ SELL</button>${G.unlock.short?`<button class="sh" data-act="trade" data-v="short" ${ps&&ps.qty>0?'disabled':''}>▼ SHORT</button><button class="sh" data-act="trade" data-v="cover" ${!ps||ps.qty>0?'disabled':''}>▲ COVER</button>`:''}</div>
       ${G.unlock.short?'':'<span class="d" style="font-size:11px">Shorting unlocks on Day 4</span>'}
-      <div class="d" style="font-size:11px">${notes?`📒 ${notes} note${notes>1?'s':''} on ${t} · `:''}$4.95/order</div>
+      ${notes?`<div class="d" style="font-size:11px">📒 ${notes} note${notes>1?'s':''} on ${t}</div>`:''}
     </div></div>`;
   } else {
     const rows=Object.entries(G.pos).map(([tk,ps2])=>{const pp=price(tk),q=ps2.qty,pl=q>0?(pp-ps2.avg)*q:(ps2.avg-pp)*(-q);
@@ -923,7 +1016,9 @@ function padHtml(){
    <div style="height:316px;overflow:hidden">${items.length?items.map(l=>{const v=verdictOf(l);return `<div class="note"><div class="m">DAY ${l.day} · ${SRC[l.src]||l.src}${l.t?' · '+l.t:''}${v?`<span class="stamp ${v.c}">${v.txt}</span>`:''}</div>${esc(l.text)}</div>`;}).join(''):'<div class="note">Nothing yet.</div>'}</div>
    <div style="display:flex;gap:8px;align-items:center;justify-content:center"><button data-act="nbp" data-v="-1" ${U.nbPage<=0?'disabled':''}>◀</button><span>Page ${U.nbPage+1} / ${pages}</span><button data-act="nbp" data-v="1" ${U.nbPage>=pages-1?'disabled':''}>▶</button></div></div>`;
 }
-function updEst(){const e=$('est');if(e)e.textContent=U.qty>0?`≈ ${fm(U.qty*price(G.sel),0)}`:'';}
+function costTxt(){if(!(U.qty>0))return 'Pick a number of shares';const v=U.qty*price(G.sel);return `Cost ${fm(v)} + ${fm(FEE)} fee`;}
+function cashLeftTxt(){if(!(U.qty>0))return '';const left=G.cash-U.qty*price(G.sel)-FEE;return left>=0?`Cash left after buying: ${fm(left)}`:`Not enough cash to buy (short by ${fm(-left)})`;}
+function updEst(){const e=$('est');if(e)e.textContent=isM()?costTxt():(U.qty>0?`≈ ${fm(U.qty*price(G.sel),0)} + fee`:'');const c=$('cashleft');if(c){c.textContent=cashLeftTxt();c.className=G.cash-U.qty*price(G.sel)-FEE>=0?'d':'dn';}}
 
 /* ---------------- DIALOGUE ---------------- */
 let dq=[],dTimer=null,dFull='',dShown=0,dDone=null;
@@ -945,6 +1040,7 @@ function dlgClick(e){if(e.target.closest('button'))return;if(dShown<dFull.length
 function choose(i){const c=U.curChoices[i];U.curChoices=null;$('dlgCh').innerHTML='';const r=c.fn&&c.fn();if(Array.isArray(r)&&r.length)dq=r.concat(dq);nextLine();}
 
 /* ---------------- STORY / TUTORIAL ---------------- */
+function pickFresh(key,arr){G.usedLines=G.usedLines||{};let u=G.usedLines[key]||[];if(u.length>=arr.length)u=[];const avail=arr.map((_,i)=>i).filter(i=>!u.includes(i));const i=avail[Math.floor(rand()*avail.length)];u.push(i);G.usedLines[key]=u;return arr[i];}
 function runQueue(list,done){const step=()=>{if(!list.length){refresh();save();if(done)done();return;}const f=list.shift();f(step);};step();}
 function introScene(next){
   const n=G.player.name;
@@ -994,18 +1090,18 @@ function anaScene(next){say([{who:'boss',text:'Earnings season is coming. Every 
 function chirpScene(next){say([{who:'chad',text:'You\'re still CALLING people? Get Chirper, grandpa. Everyone posts their hot takes on it.'},
   {who:'chad',text:'Ninety percent garbage. Ten percent real leaks. Good luck telling which is which.'}],()=>{G.unlock.chirp=true;next();});}
 function garageScene(next){
-  say([{who:'narr',text:'A folded note is tucked under your keyboard: "Parking garage, level B2. Come alone. — A friend."'},
+  say([{who:'narr',text:'A folded note is tucked under your keyboard: "Parking garage, level B2. Come alone. — A friend."'}],()=>sceneSay('garage',[
    {who:'narr',text:'Level B2. A single flickering light. Someone in a trench coat steps out of the shadows.'},
    {who:'garage',text:'I hear you\'re new. I know things: mergers, recalls, earnings, days before the news breaks. For a friend, I share.'},
    {who:'garage',text:'Trading on what I tell you is what lawyers call "insider trading." The Trade Oversight Bureau calls it a felony. Interested?',
     choices:[{t:'Take his number (tips go in your phone; trading on them builds HEAT)',cls:'primary',fn:()=>{G.unlock.garage=true;G.flags.garage='yes';return[{who:'garage',text:'Smart. Call me from your desk phone. And don\'t trade too big. Big trades get noticed.'},{who:'narr',text:'🕵 A HEAT meter is now in the corner. The more you trade on his tips, the higher it climbs. If it gets high, expect a visit.'}];}},
-     {t:'Walk away',fn:()=>{G.flags.garage='no';return[{who:'garage',text:'Suit yourself. Offer stands... for now.'}];}}]}],next);
+     {t:'Walk away',fn:()=>{G.flags.garage='no';return[{who:'garage',text:'Suit yourself. Offer stands... for now.'}];}}]}],next));
 }
-function garageReoffer(next){say([{who:'narr',text:'Another note under your keyboard: "Last chance. B2. — A friend."'},
-  {who:'garage',text:'Still clean, huh? The offer\'s on the table one last time.',choices:[{t:'Take his number',cls:'primary',fn:()=>{G.unlock.garage=true;G.flags.garage='yes';return[{who:'garage',text:'Welcome to the club. Keep it quiet.'}];}},{t:'Walk away for good',fn:()=>{G.flags.garage='never';return[{who:'garage',text:'Your loss.'}];}}]}],next);}
+function garageReoffer(next){say([{who:'narr',text:'Another note under your keyboard: "Last chance. B2. — A friend."'}],()=>sceneSay('garage',[
+  {who:'garage',text:'Still clean, huh? The offer\'s on the table one last time.',choices:[{t:'Take his number',cls:'primary',fn:()=>{G.unlock.garage=true;G.flags.garage='yes';return[{who:'garage',text:'Welcome to the club. Keep it quiet.'}];}},{t:'Walk away for good',fn:()=>{G.flags.garage='never';return[{who:'garage',text:'Your loss.'}];}}]}],next));}
 function flavorScene(next){
   const ahead=myRet()>=chadRet();const opts=[
-   ()=>say([{who:'chad',text:ahead?'Okay, you got lucky this week. Enjoy it, it won\'t last.':'Up '+fp(chadRet())+' so far. Not to brag. I am bragging.'}],next),
+   ()=>say([{who:'chad',text:ahead?pickFresh('chadfl_a',['Okay, you got lucky this week. Enjoy it, it won\'t last.','You\'re ahead of me? Must be a glitch in BIZTERM.','My dad says luck runs out. He also says I\'m his favorite.']):pickFresh('chadfl_b',['Up '+fp(chadRet())+' so far. Not to brag. I am bragging.','Just checked the standings. Still me. Shocking.','I\'d give you advice, but then you\'d be good.'])}],next),
    ()=>{G.bonusAP=1;G.ap+=1;say([{who:'narr',text:'🍕 It\'s Pizza Friday! The break room is full and the coffee is flowing. +1 coffee today.'}],next);},
    ()=>say([{who:'boss',text:pick(['Coffee machine on 12 is broken. If I see anyone crying, it better be over losses.','Remember: the trend is your friend, until it isn\'t.','Whoever keeps microwaving fish: you\'re next.'])}],next),
    ()=>say([{who:'chad',text:pick(['My dad says the market is "basically a casino with better carpet."','Bought a vest. Vests are 40% of trading.','I don\'t read the news. The news reads me.','I diversified. I own three different meme stocks.','My portfolio is like my abs. Theoretical.','I\'m basically the Mall-Wart of trading. Everyday low prices. Wait, that\'s bad.'])}],next),
@@ -1013,9 +1109,9 @@ function flavorScene(next){
   pick(opts)();
 }
 function bossCheck(){const Q=qtr(G.day),gq=goal(Q),ok=gq.ok();
-  say([{who:'boss',text:`Quarter ${Q+1} goal: ${gq.txt}. Right now you're ${ok?'ON TRACK':'BEHIND'}. You're at ${fp(myRet())}, the market is at ${fp(indexRet())}, and Chad is at ${fp(chadRet())}.`},
-   {who:'boss',text:ok?'Keep it up. Don\'t get cocky.':`Review is on Day ${(Q+1)*15}. Fix it.`+(G.strikes?' You already have a strike.':'')}]);}
-function chadTalk(){const ahead=myRet()>=chadRet();say([{who:'chad',text:ahead?pick(['Stop looking at me. I\'m having a… strategic dip.','Beginner\'s luck. My dad says it always runs out.']):pick(['Need tips? Too bad. Mine are proprietary.','You\'re behind me. It\'s okay. Most people are.','Ever heard of a vest? You should get one.'])}]);}
+  sceneSay('office',[{who:'boss',text:`Quarter ${Q+1} goal: ${gq.txt}. Right now you're ${ok?'ON TRACK':'BEHIND'}. You're at ${fp(myRet())}, the market is at ${fp(indexRet())}, and Chad is at ${fp(chadRet())}.`},
+   {who:'boss',text:ok?pickFresh('bosschk_ok',['Keep it up. Don\'t get cocky.','Good. Now get out of my office.','Acceptable. That\'s the nicest word I own.']):`Review is on Day ${(Q+1)*15}. Fix it.`+(G.strikes?' You already have a strike.':'')}]);}
+function chadTalk(){const ahead=myRet()>=chadRet();say([{who:'chad',text:ahead?pickFresh('chadtalk_a',['Stop looking at me. I\'m having a… strategic dip.','Beginner\'s luck. My dad says it always runs out.','I\'m not losing. I\'m building character.','Shh. I\'m on hold with my dad.']):pickFresh('chadtalk_b',['Need tips? Too bad. Mine are proprietary.','You\'re behind me. It\'s okay. Most people are.','Ever heard of a vest? You should get one.','Can\'t talk. Winning.'])}]);}
 
 /* ---------------- CALLS ---------------- */
 function useAP(){if(G.ap<=0){toast('Out of coffee today. Ring the closing bell to end the day.','bad');return false;}G.ap--;U.todTarget=Math.min(.85,(1-G.ap/(G.apMax+G.bonusAP))*.85);return true;}
@@ -1025,7 +1121,7 @@ function callContact(id){
   const avail=G.signals.filter(s=>s.src===id&&!s.used&&s.day<=G.day&&EV(s.ev).day>G.day).sort((a,b)=>EV(a.ev).day-EV(b.ev).day);
   let text,sid=null,t=null;
   if(avail.length&&!(id==='garage'&&rand()<0.12)){const s=avail[0];s.used=true;text=tipText(s);sid=s.id;t=tOfSig(s);if(id==='garage'&&t)G.insider.push({t,dir:s.dir,evDay:EV(s.ev).day});}
-  else if(id==='brayden'){const c=pick(CO);text=rand()<.5?`BRO. ${c.t} is about to MOON 🚀 My cousin's dentist said so.`:`Dude, I just lost my rent money on ${c.t}. Anyway, how's it going?`;}
+  else if(id==='brayden'){const c=pick(CO);if(rand()<.5){text=`BRO. ${c.t} is about to MOON 🚀 My cousin's dentist said so.`;t=c.t;G.lastCall[id]=text;addLog(id,text,null,t,{t:c.t,dir:1,day0:G.day,until:Math.min(DAYS,G.day+3)});sfx('ring');save();say([{who:id,text}],()=>refresh());return;}text=`Dude, I just lost my rent money on ${c.t}. Anyway, how's it going?`;}
   else text=pick(FILL_CALL[id]);
   G.lastCall[id]=text;addLog(id,text,sid,t);sfx('ring');save();
   say([{who:id,text}],()=>refresh());
@@ -1038,15 +1134,17 @@ function scrollChirper(){
   while(posts.length<4)posts.splice(rint(0,posts.length),0,`${pick(CHIRP_HANDLES)}: ${pick(CHIRP_NOISE)}`);
   G.chirps=posts;sfx('blip');save();refresh();
 }
-function doResearch(){const t=G.sel,Q=qtr(G.day);if(G.research[t]&&G.research[t].q===Q)return;if(!useAP())return;
+function freeResearch(t){return G.player.bg==='mallwart'&&COMAP[t].s==='CONS';}
+function doResearch(){const t=G.sel,Q=qtr(G.day);if(G.research[t]&&G.research[t].q===Q)return;if(!freeResearch(t)&&!useAP())return;
   const q=G.q[t][Q];let b=q>0.22?'STRONG':q<-0.22?'WEAK':'MIXED';if(rand()<0.2)b=pick(['STRONG','MIXED','WEAK'].filter(x=>x!==b));
   G.research[t]={q:Q,b,day:G.day};addLog('research',`Research report on ${t}: fundamentals look ${b} this quarter.${b==='STRONG'?' Earnings beat more likely.':b==='WEAK'?' Earnings miss more likely.':''}`,null,t);
   sfx('page');save();refresh();}
 
 /* ---------------- DAY CYCLE ---------------- */
 function endDay(){
-  if(G.over||U.dlg)return;
+  if(G.over||U.dlg||U.busy||G.day>DAYS||U.closing)return;
   if(G.tut==='paper'||G.tut==='buy'){toast('Finish your objective first.');return;}
+  U.closing=true;
   if(U.win)closeWin();
   if(G.tut==='bell')G.tut='day2';
   sfx('bell');bigText('🔔 CLOSING BELL');U.todTarget=1.35;
@@ -1060,13 +1158,13 @@ function endDay(){
       if(d>=DAYS){finalReview();return;}
       fade(true);
       setTimeout(()=>{
-        G.day++;G.bonusAP=0;G.ap=G.apMax;G.called={};G.chirped=false;G.chirps=[];G.lastCall={};
+        G.day++;recNote({maxDay:G.day});G.bonusAP=0;G.ap=G.apMax;G.called={};G.chirped=false;G.chirps=[];G.lastCall={};
         G.heat=Math.max(0,G.heat-2);G.insider=G.insider.filter(x=>x.evDay>=G.day);
         buildNews();
         G.pendingMargin=marginCheck();
         if((G.day-1)%15===0)G.pendingReview=qtr(G.day-1);
         G.pendingInv=investigationRoll();
-        U.tod=0;U.todTarget=0;save();refresh();fade(false);
+        U.tod=0;U.todTarget=0;U.closing=false;save();refresh();fade(false);
         bigText(`DAY ${G.day}`,900);
         setTimeout(()=>runQueue(morningQueue()),700);
       },500);
@@ -1110,22 +1208,23 @@ function morningQueue(){
 function reviewScene(next){
   const Q=G.pendingReview;G.pendingReview=null;const gq=goal(Q),ok=gq.ok();G.reviews.push({Q,ok});
   const titles=['Analyst','Trader','Senior Trader'];
-  if(ok){G.title=titles[Math.min(Q,2)];sfx('good');}else{G.strikes++;sfx('bad');}
+  if(ok){G.title=titles[Math.min(Q,2)];if(G.title==='Trader'||G.title==='Senior Trader')recNote({trader:true});sfx('good');}else{G.strikes++;sfx('bad');}
   const fired=G.strikes>=2;
-  say([{who:'narr',text:`Quarter ${Q+1} review. The Hammer's office. The door clicks shut.`},
+  const ahead=myRet()>=chadRet(),nq=goal(Q+1).txt.toLowerCase();
+  sceneSay('office',[{who:'narr',text:`Quarter ${Q+1} review. The Hammer's office. The door clicks shut.`},
    {who:'boss',text:`Your goal was: ${gq.txt}. You're at ${fp(myRet())}. The market is at ${fp(indexRet())}. Chad is at ${fp(chadRet())}.`},
-   ok?{who:'boss',text:`You hit it. You're promoted to ${G.title}. Next quarter's goal: ${goal(Q+1).txt.toLowerCase()}.`}
-     :fired?{who:'boss',text:'That\'s two misses. Pack your desk. Security will walk you out.'}
-     :{who:'boss',text:`You missed. That's a strike. One more and you're done. Next quarter's goal: ${goal(Q+1).txt.toLowerCase()}.`},
-   ok?{who:'chad',text:'Promoted? Whatever. My dad\'s on the board, I could get promoted any time I want.'}:{who:'chad',text:'Tough break, buddy. Want to borrow my vest?'}],
+   ok?{who:'boss',text:pickFresh('boss_pass',[`You hit it. You're promoted to ${G.title}.`,`Goal met. Effective today, you're ${G.title}. Don't make me regret it.`,`Fine work. Your new title is ${G.title}. It comes with a slightly nicer chair.`])+` Next quarter's goal: ${nq}.`}
+     :fired?{who:'boss',text:pickFresh('boss_fire',['That\'s two misses. Pack your desk. Security will walk you out.','Two strikes. I don\'t do three. Clear out your desk by noon.'])}
+     :{who:'boss',text:pickFresh('boss_miss',['You missed. That\'s a strike. One more and you\'re done.','Not good enough. Strike one. Miss again and you\'re cleaning out your desk.','I expected better. You\'re on thin ice: one strike.'])+` Next quarter's goal: ${nq}.`},
+   {who:'chad',text:fired?pickFresh('chad_fire',['Don\'t worry. I\'ll take great care of your desk plant.','Want me to carry your box to the elevator? I\'ll charge a small fee.','Can I have your stapler? You won\'t need it.']):ok?pickFresh(ahead?'chad_pass_ahead':'chad_pass_behind',ahead?['Promoted? Whatever. My dad\'s on the board.','Congrats. I\'m sure your desk plant is very proud.','Fine. Enjoy it. I\'m just warming up.','Okay, that was decent. Don\'t let it go to your head. That\'s my job.']:['Look at us, both winning. Me slightly more.','Promoted? Cute. I got promoted in my heart months ago.','Nice. Now try being up as much as me.']):pickFresh(ahead?'chad_miss_ahead':'chad_miss_behind',ahead?['We both had a rough quarter. Mine was rough in a cooler way.','You missed AND you\'re beating me? This is a weird timeline.','A strike, huh? I\'ve had strikes. Bowling. Very good at bowling.']:['Tough break, buddy. Want to borrow my vest?','Strike one. In baseball you get three. Here you get two. Math!','Don\'t worry, I\'ll mention you in my acceptance speech.','Have you tried... being better at this?'])}],
    ()=>{if(fired){finishGame('fired');return;}next();});
 }
 function investigationRoll(){if(G.heat<35)return false;const ch=G.heat>=100?1:(G.heat-35)/180;return rand()<ch;}
 function invScene(next){
   G.pendingInv=false;const sp=suspiciousProfit(),n=G.flagged.length;
-  if(n===0){G.heat=10;say([{who:'ledger',text:'Agent Doug Ledger, Trade Oversight Bureau. You\'ve been seen hanging around a certain parking garage.'},{who:'ledger',text:'Your trades look clean, though. For now. Have a nice day.'},{who:'narr',text:'Heat reset to 10.'}],next);return;}
+  if(n===0){G.heat=10;sceneSay('interro',[{who:'ledger',text:'Agent Doug Ledger, Trade Oversight Bureau. You\'ve been seen hanging around a certain parking garage.'},{who:'ledger',text:'Your trades look clean, though. For now. Have a nice day.'},{who:'narr',text:'Heat reset to 10.'}],next);return;}
   const f1=Math.round(Math.max(500,1.25*sp));
-  say([{who:'ledger',text:'Agent Doug Ledger, Trade Oversight Bureau. Mind if I sit?'},
+  sceneSay('interro',[{who:'narr',text:'Two agents walked you down a long hallway into a windowless room. The door locks behind you.'},{who:'ledger',text:'Agent Doug Ledger, Trade Oversight Bureau. Have a seat.'},
    {who:'ledger',text:`You made ${n} trade${n>1?'s':''} right before big news broke. Suspicious profits: about ${fm(sp,0)}. Care to explain the timing?`,
     choices:[
      {t:`Settle: hand back the profits plus a 25% penalty (${fm(f1,0)})`,fn:()=>{G.cash-=f1;G.stats.fines+=f1;G.heat=10;G.flagged=[];return[{who:'ledger',text:'Smart choice. Keep it clean.'}];}},
@@ -1140,7 +1239,7 @@ function invScene(next){
 }
 function finalReview(){
   const ok=goal(3).ok();
-  say([{who:'narr',text:'Day 60. The last bell of the fiscal year. The Hammer calls you in.'},
+  sceneSay('office',[{who:'narr',text:'Day 60. The last bell of the fiscal year. The Hammer calls you in.'},
    {who:'boss',text:`The final numbers: you're at ${fp(myRet())}, the market at ${fp(indexRet())}, Chad at ${fp(chadRet())}.`},
    {who:'boss',text:ok?'You beat the market. In this building, that\'s the only thing that matters.':'You didn\'t beat the market. A monkey with an index fund did better. Think about that.'},
    myRet()>=chadRet()?{who:'chad',text:'...Good game. Don\'t tell anyone I said that.'}:{who:'chad',text:'Better luck next year, champ. I\'ll be in my corner office.'}],()=>finishGame('complete'));
@@ -1159,12 +1258,14 @@ function finishGame(reason){
   else if(a<=0)rank={t:'Index Fund Envier',d:'You made money, but a boring index fund made more.'};
   else rank=RANKS.find(x=>a>=x.min);
   let hof=[];try{hof=JSON.parse(localStorage.getItem(HOF_KEY)||'[]');}catch(e){}
-  if(reason==='complete'){hof.push({name:G.player.name,rank:rank.t,r,a,seed:G.seed});hof.sort((x,y)=>y.a-x.a);hof=hof.slice(0,6);try{localStorage.setItem(HOF_KEY,JSON.stringify(hof));}catch(e){}}
+  const fresh=recFinish(reason,a);
+  if(reason==='complete'){hof.push({name:G.player.name,rank:rank.t,r,a,seed:G.seed,era:G.era,hard:G.hard});hof.sort((x,y)=>y.a-x.a);hof=hof.slice(0,6);try{localStorage.setItem(HOF_KEY,JSON.stringify(hof));}catch(e){}}
   try{localStorage.removeItem(SAVE_KEY);}catch(e){}
   sfx(reason==='complete'&&a>0?'good':'bad');refresh();
-  card(`<div class="cardbox"><div style="display:flex;gap:16px;align-items:center"><canvas data-face="player" style="width:96px;height:96px;image-rendering:pixelated;border:3px solid #3a2a1a;background:#7c6a55"></canvas>
+  card(`<div class="cardbox"><div style="display:flex;gap:16px;align-items:center"><canvas class="endface" data-face="player" style="width:96px;height:96px;image-rendering:pixelated;border:3px solid #3a2a1a;background:#7c6a55"></canvas>
    <div><h1>${reason==='busted'?'🚔 BUSTED':reason==='fired'?'📦 FIRED':reason==='bankrupt'?'💀 WIPED OUT':'🏁 FISCAL YEAR COMPLETE'}</h1><h2>${esc(G.player.name)}: <span style="color:#8c2f39">${rank.t}</span></h2><p>${rank.d}</p></div></div>
-   <div class="kv"><span>Final net worth</span><b>${fm(netWorth())}</b><span>Your return</span><b class="${r>=0?'g':'r'}">${fp(r)}</b><span>Market return</span><b>${fp(ir)}</b>
+   ${fresh.length?`<div style="background:#fff3c4;border:2px solid #d9a441;padding:4px 10px;margin:6px 0"><b>🔓 NEW UNLOCK${fresh.length>1?'S':''}:</b> ${fresh.map(x=>x.n).join(' · ')}</div>`:''}
+   <div class="kv endkv"><span>Final net worth</span><b>${fm(netWorth())}</b><span>Your return</span><b class="${r>=0?'g':'r'}">${fp(r)}</b><span>Market return</span><b>${fp(ir)}</b>
    <span>You vs market</span><b class="${a>=0?'g':'r'}">${fp(a)}</b><span>Chad's return</span><b>${fp(chadRet())}</b><span>Trades</span><b>${G.stats.trades}</b>
    <span>Best closed trade</span><b>${G.stats.best?G.stats.best.t+' '+fm(G.stats.best.v):'—'}</b><span>Insider trades / fines</span><b>${G.stats.insiderTrades} / ${fm(G.stats.fines,0)}</b>
    <span>Market seed (replay)</span><b>${esc(G.seed)}</b></div>
@@ -1178,10 +1279,44 @@ function titleScreen(){
   card(`<div style="text-align:center;width:100%"><div class="logo">BUY THE<br>RUMOR</div>
    <p style="color:#f3ead7;font-size:18px;margin:14px 0 4px;text-shadow:2px 2px 0 #000">…sell the news. A trading comedy from <b style="color:#d9a441">Bizness Games</b>.</p>
    <p style="color:#d9c9a6;font-size:13px;margin:0 0 16px">${VERSION}</p>
-   <div style="display:flex;gap:12px;justify-content:center">${hasSave()?'<button class="primary" data-act="continue">▶ Continue career</button>':''}<button class="${hasSave()?'':'primary'}" data-act="newcareer" style="font-size:18px;padding:8px 20px">★ New career</button></div>
-   ${hof.length?`<div class="cardbox" style="max-width:420px;margin:18px auto 0;padding:8px 14px"><h2 style="margin:0 0 4px">🏆 HALL OF FAME</h2><div class="kv" style="font-size:14px">${hof.map(h=>`<span>${esc(h.name)} · ${h.rank}</span><b class="${h.a>=0?'g':'r'}">${fp(h.a)} vs mkt</b>`).join('')}</div></div>`:''}</div>`);
+   <div style="display:flex;gap:12px;justify-content:center">${hasSave()?'<button class="primary" data-act="continue">▶ Continue career</button>':''}<button class="${hasSave()?'':'primary'}" data-act="newcareer" style="font-size:18px;padding:8px 20px">★ New career</button><button data-act="unlocks">🔓 Unlocks ${UNLOCKS.filter(x=>unlocked()[x.id]).length}/${UNLOCKS.length}</button></div>
+   ${hof.length?`<div class="cardbox" style="max-width:420px;margin:18px auto 0;padding:8px 14px"><h2 style="margin:0 0 4px">🏆 HALL OF FAME</h2><div class="kv" style="font-size:14px">${hof.map(h=>`<span>${esc(h.name)} · ${h.rank}${h.hard?' (Hard)':''}${h.era&&h.era!=='standard'?' · '+ERAS[h.era].n:''}</span><b class="${h.a>=0?'g':'r'}">${fp(h.a)} vs mkt</b>`).join('')}</div></div>`:''}</div>`);
   $('card').style.background='rgba(10,6,4,.6)';U.onTitle=true;$('hud').classList.add('hidden');$('monitor').style.visibility='hidden';
 }
+
+/* ---------------- CAREER RECORD / UNLOCKS (variety, not power) ---------------- */
+const REC_KEY='btr_record_v1';
+const ERAS={
+ standard:{n:'Standard Year',d:'A normal-ish fiscal year. Good for learning the ropes.',need:null},
+ dotbomb:{n:'The Dot-Bomb Bubble',d:'Tech and media swing harder. Everyone\'s a genius in the first half. Then the bubble pops.',need:'dotbomb'},
+ winter:{n:'Crypto Winter',d:'Wildcard stocks are in a deep freeze, and bad news finds them more often.',need:'winter'},
+ party:{n:'The Rate-Cut Party',d:'The Fed is printing good vibes. The market drifts up, so beating it is harder.',need:'party'}};
+const UNLOCKS=[
+ {id:'dotbomb',n:'Market era: The Dot-Bomb Bubble',how:'Finish any career, whatever the ending'},
+ {id:'winter',n:'Market era: Crypto Winter',how:'Survive past Day 30 in a career'},
+ {id:'mallwart',n:'Background: Mall-Wart Alum',how:'Get promoted to Trader (pass the Q2 review)'},
+ {id:'party',n:'Market era: The Rate-Cut Party',how:'Complete all 60 days'},
+ {id:'hard',n:'Hard Hammer mode',how:'Beat the market in a completed career'}];
+function getRec(){try{return JSON.parse(localStorage.getItem(REC_KEY)||'{}');}catch(e){return{};}}
+function setRec(r){try{localStorage.setItem(REC_KEY,JSON.stringify(r));}catch(e){}}
+function unlocked(rec){rec=rec||getRec();return{dotbomb:(rec.careers||0)>=1,winter:(rec.maxDay||0)>30,mallwart:!!rec.trader,party:(rec.completed||0)>=1,hard:!!rec.beatMarket};}
+function anyChoice(){const u=unlocked();return u.dotbomb||u.winter||u.party||u.hard;}
+function recNote(patch){const before=unlocked();const r=getRec();if(patch.maxDay)r.maxDay=Math.max(r.maxDay||0,patch.maxDay);if(patch.trader)r.trader=true;setRec(r);const after=unlocked();UNLOCKS.filter(u=>after[u.id]&&!before[u.id]).forEach(u=>{G.midUnlocks=(G.midUnlocks||[]).concat([u.id]);setTimeout(()=>toast('🔓 Unlocked for future careers: '+u.n),1200);});}
+function recFinish(reason,alpha){const before=unlocked();const r=getRec();r.careers=(r.careers||0)+1;r.maxDay=Math.max(r.maxDay||0,G.day);
+  if(reason==='complete'){r.completed=(r.completed||0)+1;if(alpha>0)r.beatMarket=true;}if(G.title==='Trader'||G.title==='Senior Trader')r.trader=true;setRec(r);
+  const after=unlocked();const mid=G.midUnlocks||[];return UNLOCKS.filter(u=>(after[u.id]&&!before[u.id])||mid.includes(u.id));}
+function volOf(c){return c.vol*(G&&G.era==='dotbomb'&&(c.s==='TECH'||c.s==='MEDIA')?1.4:1);}
+function unlocksCard(){const u=unlocked(),r=getRec();
+  card(`<div class="cardbox"><h1>🔓 UNLOCKS</h1><p style="font-size:14px;color:#6b5440">Unlocks add new options, not extra power. Careers played: ${r.careers||0}.</p>
+   <div class="kv">${UNLOCKS.map(x=>`<span>${u[x.id]?'✔':'🔒'} ${x.n}</span><b style="font-family:inherit;font-weight:400;font-size:13px;color:${u[x.id]?'#2f7d4a':'#6b5440'}">${u[x.id]?'Unlocked':x.how}</b>`).join('')}</div>
+   <div class="btns"><button class="primary" data-act="title">◀ Back</button></div></div>`);}
+function yearCard(){if(!U.year)U.year={era:'standard',hard:false};const u=unlocked(),Y=U.year;
+  card(`<div class="cardbox ycard"><h1>CHOOSE YOUR YEAR</h1>
+   <div class="eragrid">${Object.entries(ERAS).map(([k,e])=>{const ok=!e.need||u[e.need];return `<div class="bgopt ${Y.era===k?'on':''} ${ok?'':'locked'}" data-act="era" data-v="${k}"><b>${ok?'':'🔒 '}${e.n}</b><div>${ok?e.d:UNLOCKS.find(x=>x.id===e.need).how}</div></div>`;}).join('')}</div>
+   <div class="bgopt ${Y.hard?'on':''} ${u.hard?'':'locked'}" data-act="hardtog" style="margin-top:6px"><b>${u.hard?(Y.hard?'☑':'☐'):'🔒'} Hard Hammer mode</b><div>${u.hard?'Tougher quarterly goals, and Chad brings his A-game. No other changes.':UNLOCKS.find(x=>x.id==='hard').how}</div></div>
+   <div class="btns"><button data-act="newcareer">◀ Back</button><button class="primary" data-act="beginyear" style="margin-left:auto">Start Day 1 ▶</button></div></div>`);}
+function launchCareer(){U.closing=false;U.busy=false;const C=U.creator,Y=U.year||{era:'standard',hard:false};
+  newGame({name:C.name,face:creatorFace(),bg:C.bg,seed:C.seed,era:Y.era,hard:Y.hard});closeCardSilent();U.tod=0;U.todTarget=0;save();refresh();runQueue([introScene]);}
 function creator(){$('monitor').style.visibility='hidden';
   if(!U.creator)U.creator={name:'',skin:0,hair:0,hs:0,shirt:0,glasses:false,bg:'grinder',seed:''};
   const C=U.creator;
@@ -1191,14 +1326,14 @@ function creator(){$('monitor').style.visibility='hidden';
     <button data-act="title">◀</button><button class="primary" data-act="startcareer">Start Day 1 ▶</button></div>
    <div style="display:flex;gap:8px;margin:6px 0;align-items:flex-end">${['skin','hair','hs','shirt'].map(k=>`<div class="cg"><span>${{skin:'Skin',hair:'Hair',hs:'Style',shirt:'Outfit'}[k]}</span><div><button data-act="cust" data-v="${k}" data-d="-1">◀</button><button data-act="cust" data-v="${k}" data-d="1">▶</button></div></div>`).join('')}
     <div class="cg"><span>Glasses</span><div><button data-act="cust" data-v="glasses" data-d="0">${C.glasses?'On':'Off'}</button></div></div></div>
-   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">${Object.entries(BACKGROUNDS).map(([k,b])=>`<div class="bgopt ${C.bg===k?'on':''}" data-act="bg" data-v="${k}"><b>${b.n}</b><div>${b.d}</div></div>`).join('')}</div></div>`);paintCreator();return;}
+   <div style="display:grid;grid-template-columns:repeat(${Object.values(BACKGROUNDS).filter(b=>!b.lock||unlocked()[b.lock]).length},1fr);gap:6px">${Object.entries(BACKGROUNDS).filter(([k,b])=>!b.lock||unlocked()[b.lock]).map(([k,b])=>`<div class="bgopt ${C.bg===k?'on':''}" data-act="bg" data-v="${k}"><b>${b.n}</b><div>${b.d}</div></div>`).join('')}</div></div>`);paintCreator();return;}
   card(`<div class="cardbox"><h1>NEW HIRE PAPERWORK</h1><div style="display:flex;gap:20px">
    <div style="text-align:center" class="ccol"><canvas id="creatorFace"></canvas><div class="custs">
     ${['skin','hair','hs','shirt'].map(k=>`<div class="cust"><span>${{skin:'Skin',hair:'Hair',hs:'Style',shirt:'Outfit'}[k]}</span><button data-act="cust" data-v="${k}" data-d="-1">◀</button><button data-act="cust" data-v="${k}" data-d="1">▶</button></div>`).join('')}
     <div class="cust"><span>Glasses</span><button data-act="cust" data-v="glasses" data-d="0">${C.glasses?'On':'Off'}</button></div></div></div>
    <div style="flex:1"><div style="font-size:14px;color:#6b5440">Your name</div><input class="txt" id="nameIn" maxlength="18" placeholder="e.g. Jordan Belfry" value="${esc(C.name)}" data-in="name">
     <div style="font-size:14px;color:#6b5440;margin-top:10px">Background</div>
-    ${Object.entries(BACKGROUNDS).map(([k,b])=>`<div class="bgopt ${C.bg===k?'on':''}" data-act="bg" data-v="${k}"><b>${b.n}</b><div>${b.d}</div></div>`).join('')}
+    ${Object.entries(BACKGROUNDS).filter(([k,b])=>!b.lock||unlocked()[b.lock]).map(([k,b])=>`<div class="bgopt ${C.bg===k?'on':''}" data-act="bg" data-v="${k}"><b>${b.n}</b><div>${b.d}</div></div>`).join('')}
     <div class="seedrow" style="font-size:12px;color:#6b5440;margin-top:6px">Market seed (optional, replays the same market): <input id="seedIn" data-in="seed" value="${esc(C.seed)}" style="width:110px;font-family:inherit"></div>
    </div></div>
    <div class="btns"><button data-act="title">◀ Back</button><button class="primary" data-act="startcareer" style="margin-left:auto">Sign &amp; start Day 1 ▶</button></div></div>`);
@@ -1245,6 +1380,7 @@ document.addEventListener('click',e=>{
    case 'msel':G.sel=v;U.mview='stock';sfx('click');renderWin();break;
    case 'qadj':U.qty=Math.max(0,U.qty+(+v));renderWin();break;
    case 'qclr':U.qty=0;renderWin();break;
+   case 'qpct':U.qty=Math.floor(maxBuy(G.sel)*(+v)/100);renderWin();break;
    case 'close':if(!U.dlg)closeWin();break;
    case 'bell':hsClick('bell');break;
    case 'ctab':U.ctab=v;renderWin();break;
@@ -1266,13 +1402,17 @@ document.addEventListener('click',e=>{
    case 'sound':muted=!muted;refresh();break;
    case 'menu':if(U.dlg)break;save();titleScreen();break;
    case 'title':closeCardSilent();titleScreen();break;
-   case 'continue':if(load()){closeCardSilent();ensureState();refresh();U.tod=(1-G.ap/G.apMax)*.85;U.todTarget=U.tod;toast(`Welcome back. Day ${G.day}.`);
+   case 'continue':U.closing=false;U.busy=false;if(load()){closeCardSilent();ensureState();refresh();U.tod=(1-G.ap/G.apMax)*.85;U.todTarget=U.tod;toast(`Welcome back. Day ${G.day}.`);
      if(G.tut==='intro')runQueue([introScene]);else if(G.day>=9&&!G.flags.garage)runQueue([garageScene]);}break;
    case 'newcareer':U.creator=null;creator();break;
    case 'cust':{const C=U.creator;if(v==='glasses')C.glasses=!C.glasses;else{const arr=LOOKS[v];C[v]=(C[v]+(+el.dataset.d)+arr.length)%arr.length;}C.name=$('nameIn').value;C.seed=$('seedIn').value;creator();break;}
    case 'bg':U.creator.bg=v;U.creator.name=$('nameIn').value;U.creator.seed=$('seedIn').value;creator();break;
    case 'startcareer':{const C=U.creator;C.name=$('nameIn').value.trim()||'Rookie';C.seed=$('seedIn').value;
-     newGame({name:C.name,face:creatorFace(),bg:C.bg,seed:C.seed});closeCardSilent();U.tod=0;U.todTarget=0;save();refresh();runQueue([introScene]);break;}
+     if(anyChoice()){yearCard();break;}launchCareer();break;}
+   case 'beginyear':launchCareer();break;
+   case 'unlocks':unlocksCard();break;
+   case 'era':{const e=ERAS[v];if(e.need&&!unlocked()[e.need]){toast('Locked: '+UNLOCKS.find(x=>x.id===e.need).how);break;}U.year.era=v;yearCard();break;}
+   case 'hardtog':{if(!unlocked().hard){toast('Locked: '+UNLOCKS.find(x=>x.id==='hard').how);break;}U.year.hard=!U.year.hard;yearCard();break;}
   }
 });
 document.addEventListener('mouseover',e=>{$('stage').classList.toggle('hovering',!!e.target.closest('.hs'));});
@@ -1283,7 +1423,7 @@ function ensureState(){const d=G.day;if(d>=2){G.unlock.phone=true;G.unlock.noteb
 
 /* ---------------- BOOT ---------------- */
 function fit(){const s=Math.min(innerWidth/960,innerHeight/540);$('stage').style.transform=`translate(-50%,-50%) scale(${s})`;}
-const UI_IDS=['hud','objective','endDay','heatBox','shade','win','dlg','card','bigText','fade','toasts'];
+const UI_IDS=['hud','loc','objective','endDay','heatBox','shade','win','dlg','card','bigText','fade','toasts'];
 const FORCE_M=/[?&]mobile=1/.test(location.search);
 function isM(){return document.body.classList.contains('m');}
 function applyMode(){
